@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Realtime Icinga Status</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="scripts/jquery-1.3.2.debug.js" type="text/javascript"></script>
+    <link href="styles/icinga-custom-bootstrap.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript">
+// Set how freqently to refresh the page (in milliseconds)
+var RefreshTime = 5000;
+$(document).ready(function() {
+  GetData();
+  showDate();
+  setInterval(function(){ GetData(); showDate(); }, RefreshTime);
+});
+
+function showDate(){
+  var now = new Date();
+  var outYear = now.getFullYear();
+  var outMonth = now.getMonth() + 1;
+  if (outMonth<10){outMonth="0"+outMonth;}
+  var outDay = now.getDate();
+  if (outDay<10){outDay="0"+outDay;}
+  var outHour = now.getHours();
+  if(outHour<10){outHour="0"+outHour;}
+  var outMin = now.getMinutes();
+  if(outMin<10){outMin="0"+outMin;}
+  var outSec = now.getSeconds();
+  if(outSec<10){outSec="0"+outSec;}
+  $('div#last-updated').html("<b>IcingaServer1 last polled: " + outYear + "-" + outMonth + "-" + outDay + " " + outHour + ":" + outMin + "</b><span style=\"color: #aaa; font-size: 0.8em;\">:" + outSec + "</span>");
+}
+
+function GetData() { $.ajax({
+  type: "GET",
+  //url: "https://your.icinga.host.local/cgi-bin/icinga/status.cgi?jsonoutput&servicestatustypes=28",
+  url: "/cgi-bin/icinga/status.cgi?jsonoutput&servicestatustypes=28",
+  dataType: "json",
+  data: "",
+  error: function(request,error) {
+    console.log(arguments);
+    $('#json').replaceWith('<tbody id="json"><tr><td colspan="7"><div class="CRITICAL">Error: ' + request + '</div></td></tr></tbody>');
+  },
+  success: function(res) {
+    jsondata = res.status.service_status;
+
+    $('#json').replaceWith('<tbody id="json"></tbody>'); // 'reset' the canvas, aka wipe the table rows before rebuilding them
+
+    function processStatus(response) {
+      $(jsondata).each(function(i){
+        //console.log(response[i]); //Uncomment for extra debugging
+        $('#json').append("<tr>" +
+        "<td><div class=\"HOST-DIV\"><strong>" + response[i].host + "</strong></td>" +
+        "<td><div class=\"" + response[i].status + "-DIV\">" + response[i].service + "</td>" +
+        "<td><div class=\"" + response[i].status + "\">" + response[i].status + "</div></td>" +
+        "<td><div class=\"" + response[i].status + "-DIV\">" + response[i].last_check + "</div></td>" +
+        "<td><div class=\"" + response[i].status + "-DIV2\">" + response[i].duration + "</div></td>" +
+        "<td><div class=\"" + response[i].status + "-DIV\">" + response[i].attempts + "</div></td>" +
+        "<td width=\"50%\"><div class=\"" + response[i].status + "-DIV2\">" + response[i].status_information + "</div></td>" +
+        "</tr>");
+      });
+    }
+
+    if ( $(jsondata).length == 0 ) {
+      //console.log("No problems to report");
+      $('#json').append("<tr><td colspan=\"7\"><div class=\"STATUSEMPTY\"><strong>Nothing to report</strong></div></td></tr>");
+    } else {
+      processStatus(jsondata);
+    };
+  }
+});
+}
+</script>
+
+</head>
+<body>
+<div id="last-updated">&nbsp;</div>
+<div style="background-color: #e7e7e7;">
+<table id="jsontable" class="fix-spacing table table-striped standard">
+	<thead>
+		<tr>
+			<th style="background-color: #666; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Host</div></th>
+			<th style="background-color: #777; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Service</div></th>
+			<th style="background-color: #666; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Status</div></th>
+			<th style="background-color: #777; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Last Check</div></th>
+			<th style="background-color: #666; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Duration</div></th>
+			<th style="background-color: #777; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Attempt</div></th>
+			<th width="50%" style="background-color: #666; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Status Information</div></th>
+		</tr>
+	</thead>
+	<tbody id="json">
+		<tr><td colspan="7" style="background-color: #666; color: #fff; font-weight: bold;"><div class="TITLE-DIV">Loading</div></td></tr>
+	</tbody>
+</table>
+</div>
+
+</body>
+</html>
